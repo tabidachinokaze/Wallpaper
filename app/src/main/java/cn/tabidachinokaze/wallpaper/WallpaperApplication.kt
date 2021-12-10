@@ -4,7 +4,7 @@ import android.annotation.SuppressLint
 import android.app.Application
 import android.content.Context
 
-class Wallpaper : Application() {
+class WallpaperApplication : Application() {
     companion object {
         @SuppressLint("StaticFieldLeak")
         lateinit var context: Context
