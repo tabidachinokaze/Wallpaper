@@ -1,19 +1,24 @@
 package cn.tabidachinokaze.wallpaper.repository
 
+import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.util.Log
+import androidx.annotation.WorkerThread
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import cn.tabidachinokaze.wallpaper.data.entities.ImageResponse
 import cn.tabidachinokaze.wallpaper.service.ImageService
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import okhttp3.ResponseBody
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
-class WallpaperRepository {
+class WallpaperRepository private constructor(context: Context) {
     private val imageService: ImageService
     private val retrofit: Retrofit
 
@@ -47,8 +52,30 @@ class WallpaperRepository {
         Log.d(TAG, "getImageSource end")
     }
 
+    @WorkerThread
+    fun getImageBitmap(url: String): Bitmap? {
+        val response: Response<ResponseBody> = imageService.getUrlBytes(url).execute()
+        val bitmap = response.body()?.byteStream()?.use {
+            BitmapFactory.decodeStream(it)
+        }
+        Log.i(TAG, "decoded bitmap=$bitmap from Response=$response")
+        return bitmap
+    }
+
     companion object {
         private const val TAG = "WallpaperRepository"
         private const val baseUrl = "https://img.xjh.me/"
+        private var INSTANCE: WallpaperRepository? = null
+
+        fun initialize(context: Context) {
+            if (INSTANCE == null) {
+                INSTANCE = WallpaperRepository(context)
+            }
+        }
+
+        fun getInstance(): WallpaperRepository {
+            return INSTANCE
+                ?: throw IllegalStateException("WallpaperRepository must be initialized")
+        }
     }
 }
