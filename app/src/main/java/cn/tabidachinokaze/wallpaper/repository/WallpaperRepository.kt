@@ -7,26 +7,36 @@ import android.util.Log
 import androidx.annotation.WorkerThread
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import androidx.room.Room
+import cn.tabidachinokaze.wallpaper.data.WallpaperDatabase
+import cn.tabidachinokaze.wallpaper.data.entities.ImageItem
 import cn.tabidachinokaze.wallpaper.data.entities.ImageResponse
+import cn.tabidachinokaze.wallpaper.model.WallpaperCache
 import cn.tabidachinokaze.wallpaper.service.ImageService
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import okhttp3.ResponseBody
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import java.util.concurrent.Executors
 
 class WallpaperRepository private constructor(context: Context) {
+    val cache = WallpaperCache(context)
     private val imageService: ImageService
-    private val retrofit: Retrofit
+    private val retrofit: Retrofit = Retrofit.Builder()
+        .baseUrl(baseUrl)
+        .addConverterFactory(GsonConverterFactory.create())
+        .build()
+    private val database: WallpaperDatabase = Room.databaseBuilder(
+        context,
+        WallpaperDatabase::class.java,
+        DATABASE_NAME
+    ).build()
+    private val imageDao = database.imageDao()
+    private val executor = Executors.newSingleThreadExecutor()
 
     init {
-        retrofit = Retrofit.Builder()
-            .baseUrl(baseUrl)
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
         imageService = retrofit.create(ImageService::class.java)
     }
 
@@ -62,7 +72,22 @@ class WallpaperRepository private constructor(context: Context) {
         return bitmap
     }
 
+    fun addImage(imageItem: ImageItem) {
+        executor.execute {
+            imageDao.addImage(imageItem)
+        }
+    }
+
+    fun getImageByUrl(url: String): ImageItem? {
+        return imageDao.getImageByUrl(url)
+    }
+
+    fun getImages(): LiveData<List<ImageItem>> {
+        return imageDao.getImages()
+    }
+
     companion object {
+        private const val DATABASE_NAME = "database-images"
         private const val TAG = "WallpaperRepository"
         private const val baseUrl = "https://img.xjh.me/"
         private var INSTANCE: WallpaperRepository? = null

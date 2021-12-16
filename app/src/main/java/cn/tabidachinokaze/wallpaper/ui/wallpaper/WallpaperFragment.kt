@@ -43,10 +43,12 @@ class WallpaperFragment : Fragment() {
         super.onCreate(savedInstanceState)
         images = wallpaperViewModel.images
         val responseHolder = Handler(Looper.getMainLooper())
-        pictureLoader = PictureLoader(responseHolder) { imageHolder, _, bitmap ->
+        pictureLoader = PictureLoader(responseHolder) { imageHolder, imageItem, bitmap ->
             imageHolder.bindDrawable(BitmapDrawable(resources, bitmap))
+            repository.cache.put(imageItem, bitmap)
         }
         lifecycle.addObserver(pictureLoader.fragmentLifecycleObserver)
+        Log.d(TAG, "cacheDir ${context?.cacheDir}")
     }
 
     override fun onCreateView(
@@ -78,6 +80,7 @@ class WallpaperFragment : Fragment() {
         return binding.root
     }
 
+    @SuppressLint("NotifyDataSetChanged")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         Log.d(TAG, "onViewCreated")
@@ -88,6 +91,10 @@ class WallpaperFragment : Fragment() {
             repeat(6) {
                 getResponse()
             }
+        }
+        wallpaperViewModel.imagesLiveData.observe(viewLifecycleOwner) {
+            images.addAll(0, it)
+            adapter.notifyDataSetChanged()
         }
     }
 
@@ -113,6 +120,9 @@ class WallpaperFragment : Fragment() {
                 it,
                 ""
             )
+            if (repository.getImageByUrl(it) == null) {
+                repository.addImage(image)
+            }
             images.add(0, image)
             adapter.notifyDataSetChanged()
             swipeRefreshLayout.isRefreshing = false

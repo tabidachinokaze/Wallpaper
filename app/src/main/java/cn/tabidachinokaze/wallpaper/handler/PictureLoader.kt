@@ -14,7 +14,7 @@ import java.util.concurrent.ConcurrentHashMap
 
 class PictureLoader<in T>(
     private val responseHandler: Handler,
-    private val onPictureLoaded: (T, String, Bitmap) -> Unit
+    private val onPictureLoaded: (T, ImageItem, Bitmap) -> Unit
 ) : HandlerThread(TAG) {
 
     val fragmentLifecycleObserver = LifecycleEventObserver { _, event ->
@@ -84,7 +84,7 @@ class PictureLoader<in T>(
             }
 
             requestMap.remove(imageHolder)
-            onPictureLoaded(imageHolder, imageItem.id, bitmap)
+            onPictureLoaded(imageHolder, imageItem, bitmap)
         })
     }
 

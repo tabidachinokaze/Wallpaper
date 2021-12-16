@@ -1,6 +1,7 @@
 package cn.tabidachinokaze.wallpaper.base.adapter
 
 import android.content.Context
+import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.Drawable
 import android.view.LayoutInflater
@@ -12,6 +13,7 @@ import cn.tabidachinokaze.wallpaper.R
 import cn.tabidachinokaze.wallpaper.data.entities.ImageItem
 import cn.tabidachinokaze.wallpaper.databinding.ImageItemBinding
 import cn.tabidachinokaze.wallpaper.handler.PictureLoader
+import cn.tabidachinokaze.wallpaper.repository.WallpaperRepository
 
 class WallpaperAdapter(
     private val context: Context,
@@ -20,6 +22,7 @@ class WallpaperAdapter(
 ) :
     RecyclerView.Adapter<ImageHolder>() {
     private val inflater = LayoutInflater.from(context)
+    private val repository = WallpaperRepository.getInstance()
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ImageHolder {
         val binding =
             DataBindingUtil.inflate<ImageItemBinding>(inflater, R.layout.image_item, parent, false)
@@ -29,11 +32,17 @@ class WallpaperAdapter(
     override fun onBindViewHolder(holder: ImageHolder, position: Int) {
         val image = images[position]
         holder.bindTitle(image.title)
-        val placeholder: Drawable =
-            ContextCompat.getDrawable(context, R.drawable.placeholder)
-                ?: ColorDrawable()
-        holder.bindDrawable(placeholder)
-        pictureLoader.enterQueue(holder, image)
+        val bitmap = repository.cache.get(image)
+        if (bitmap == null) {
+            val placeholder: Drawable =
+                ContextCompat.getDrawable(context, R.drawable.placeholder)
+                    ?: ColorDrawable()
+            holder.bindDrawable(placeholder)
+            pictureLoader.enterQueue(holder, image)
+        } else {
+            val drawable = BitmapDrawable(context.resources, bitmap)
+            holder.bindDrawable(drawable)
+        }
     }
 
     override fun getItemCount(): Int {
